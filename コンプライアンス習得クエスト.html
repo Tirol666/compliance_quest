@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>コンプラクエスト</title>
+    <style>
+        body { background: #000; color: #fff; font-family: "MS Gothic", sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        #game-container { width: 800px; height: 600px; position: relative; border: 4px solid #fff; background-color: #222; background-size: 100% 100%; }
+        
+        #end-roll-screen { position: absolute; inset: 0; background: #000; z-index: 2000; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        #credits-container { position: absolute; top: 100%; width: 100%; text-align: center; }
+        /* F5案内までしっかり見せるため、到達点を調整 */
+        @keyframes scroll-up { 0% { top: 100%; } 100% { top: -350%; } }
+        
+        .credit-section { margin-bottom: 80px; line-height: 1.6; }
+        .credit-title { font-size: 18px; color: #aaa; margin-bottom: 10px; }
+        .credit-name { font-size: 26px; font-weight: bold; margin-bottom: 5px; }
+        .credit-url { font-size: 14px; color: #00bfff; display: block; margin-top: 5px; margin-bottom: 15px; text-decoration: none; }
+
+        #start-overlay, #char-select-screen { position: absolute; inset: 0; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #000; }
+        .char-grid { display: flex; gap: 10px; }
+        .char-card { width: 140px; cursor: pointer; text-align: center; border: 1px solid #444; padding: 5px; background: #111; }
+        .char-thumb { width: 120px; height: 180px; object-fit: contain; }
+        #battle-field { position: absolute; top: 50px; width: 100%; height: 350px; display: flex; justify-content: space-around; align-items: flex-end; pointer-events: none; }
+        .sprite { height: 280px; object-fit: contain; }
+        #player-img { transform: scaleX(-1); }
+        #message-window { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 760px; height: 150px; background: rgba(0,0,0,0.9); border: 3px solid #fff; padding: 20px; box-sizing: border-box; z-index: 100; cursor: pointer; }
+        #speaker-name { position: absolute; top: -15px; left: 20px; background: #fff; color: #000; padding: 2px 15px; font-weight: bold; border: 1px solid #000; }
+        #ui-container { position: absolute; top: 280px; left: 50%; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; width: 720px; z-index: 2100; }
+        .btn { background: #000; color: #fff; border: 2px solid #fff; padding: 12px; margin: 5px; cursor: pointer; font-size: 16px; min-width: 330px; }
+        .btn:hover { background: #fff; color: #000; }
+        .hidden { display: none !important; }
+        #progress-bar { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px solid #fff; z-index: 200; }
+
+        /* 魔王消滅時のフラッシュ演出用 */
+        .flash { animation: flash-effect 0.5s infinite; }
+        @keyframes flash-effect { 0% { background: #222; } 50% { background: #fff; } 100% { background: #222; } }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="progress-bar" class="hidden">Stage: <span id="stage-num">1</span> / 10</div>
+    <div id="start-overlay">
+        <h1>コンプラクエスト</h1>
+        <button class="btn" onclick="initGame()">冒険を始める</button>
+    </div>
+    <div id="char-select-screen" class="hidden">
+        <h2>共に歩む戦士を選択してください</h2>
+        <div class="char-grid" id="char-options"></div>
+    </div>
+    <div id="battle-field">
+        <img id="enemy-img" class="sprite" src="神父.png">
+        <img id="player-img" class="sprite hidden">
+    </div>
+    <div id="ui-container" class="hidden"></div>
+    <div id="message-window" class="hidden" onclick="handleWindowClick()">
+        <div id="speaker-name">神父</div>
+        <div id="message-body"></div>
+    </div>
+    <div id="end-roll-screen" class="hidden">
+        <div id="credits-container">
+            <div class="credit-section">
+                <div class="credit-title">CAST</div>
+                <div class="credit-name">ダイシ / アヤ / リダ / ユラサマ / シーク</div>
+            </div>
+            <div class="credit-section">
+                <div class="credit-title">SOUND & MATERIAL協力</div>
+                <div class="credit-name">VIPRPG@Wiki</div><span class="credit-url">https://w.atwiki.jp/vip_rpg/</span>
+                <div class="credit-name">Springin'</div><span class="credit-url">https://www.springin.org/</span>
+                <div class="credit-name">イラストAC</div><span class="credit-url">https://www.ac-illust.com/</span>
+            </div>
+            <div class="credit-section">
+                <div class="credit-title">問題参照出典</div>
+                <div class="credit-name">Schoo</div><span class="credit-url">https://schoo.jp/biz/column/1853/</span>
+            </div>
+            <div style="margin-top:100px;">
+                <div class="credit-title">PRESENTED BY</div>
+                <div class="credit-name" style="font-size:52px;">TIROL</div>
+            </div>
+            <div style="margin-top:100px;">
+                <div class="credit-title">PROGRAMMED BY</div>
+                <div class="credit-name" style="font-size:40px;">Google Gemini</div>
+            </div>
+            <div style="margin-top:150px; color: #ffff00; font-weight: bold;">
+                もう一度遊ぶ時は【F5】キーを押して下さい
+            </div>
+            <div style="height:600px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const players = {
+    "ダイシ": { img: "daishi_front.png", s: "うたう" },
+    "アヤ": { img: "aya_front.png", s: "おどる" },
+    "リダ": { img: "lida_front.png", s: "ひゃくれつけん" },
+    "ユラサマ": { img: "yurasama_front.png", s: "おどる" },
+    "シーク": { img: "seek_front.png", s: "みずをはく" }
+};
+const stages = [
+    { n: "スライム", f: "スライム.png", bg: "森.jpg", msg: "基礎の確認です。" },
+    { n: "ゴブリン", f: "ゴブリン.png", bg: "道中.jpg", msg: "著作権を理解しましょう。" },
+    { n: "オーク", f: "オーク.png", bg: "道中2.jpg", msg: "パワハラ厳禁。" },
+    { n: "マーマン", f: "マーマン.png", bg: "湖.jpg", msg: "ネットの海は危険です。" },
+    { n: "ゾンビ", f: "ゾンビ.png", bg: "砂漠.jpg", msg: "漏洩は死を招きます。" },
+    { n: "ムシャ", f: "ムシャ.png", bg: "ダンジョン.jpg", msg: "【四天王】いざ尋常に！" },
+    { n: "死神五世", f: "死神五世.png", bg: "ダンジョン.jpg", msg: "【四天王】魂を刈り取ろう。" },
+    { n: "チェルシー", f: "チェルシー.png", bg: "ダンジョン2.jpg", msg: "【四天王】ボコボコよ！" },
+    { n: "恍惚なる闇", f: "恍惚.png", bg: "ダンジョン2.jpg", msg: "【四天王】酔いしれなさい。" },
+    { n: "魔王", f: "魔王.png", bg: "ダンジョン最深部.jpg", msg: "【最終決戦】我が闇に勝てるか！" }
+];
+const masterQuizes = [
+    { q: "PC離席時の対応は？", a: ["そのまま", "画面ロック", "電源OFF"], c: "画面ロック", e: "Win+Lでロックを！" },
+    { q: "ネット画像を無断使用は？", a: ["OK", "NG", "加工でOK"], c: "NG", e: "許諾が必要です。" },
+    { q: "「辞めろ」という発言は？", a: ["指導", "パワハラ", "期待"], c: "パワハラ", e: "人格否定はNG。" },
+    { q: "USBを拾った。どうする？", a: ["中身見る", "絶対見ない", "すぐ抜く"], c: "絶対見ない", e: "感染リスク。" },
+    { q: "SNSに社外秘を投稿。", a: ["消せばOK", "立派な漏洩", "鍵垢ならOK"], c: "立派な漏洩", e: "重大違反。" },
+    { q: "お酒を無理に勧める。", a: ["親睦", "アルハラ", "義務"], c: "アルハラ", e: "ハラスメント。" },
+    { q: "パスワードを付箋で貼る。", a: ["便利", "絶対ダメ", "自分ならOK"], c: "絶対ダメ", e: "NG。" },
+    { q: "漫画のスキャンをアップ。", a: ["所有物だしOK", "著作権侵害", "広告だしOK"], c: "著作権侵害", e: "侵害です。" },
+    { q: "皆の前で部下を怒鳴る。", a: ["教育", "パワハラ", "当然"], c: "パワハラ", e: "公開処刑NG。" },
+    { q: "怪しいメールの添付を開く。", a: ["気になる", "絶対開かない", "とりあえず"], c: "絶対開かない", e: "感染の最大要因。" },
+    { q: "共有PCで個人のSNSにログイン。", a: ["休憩ならOK", "リスクが高い", "履歴を消せばOK"], c: "リスクが高い", e: "情報漏洩の原因になります。" },
+    { q: "同僚の容姿を繰り返し揶揄する。", a: ["親愛の情", "ハラスメント", "冗談"], c: "ハラスメント", e: "不快感を与えるのはNG。" },
+    { q: "支給PCに許可なくソフト導入。", a: ["自己責任", "セキュリティ規約違反", "効率化"], c: "セキュリティ規約違反", e: "許可なき導入はNG。" },
+    { q: "退職時に機密を持ち出す。", a: ["努力の成果", "不正競争防止法違反", "記念"], c: "不正競争防止法違反", e: "法的に罰せられます。" },
+    { q: "昼休憩中に業務連絡。", a: ["当たり前", "休憩時間の侵害", "熱意の証"], c: "休憩時間の侵害", e: "休憩は権利です。" },
+    { q: "顧客名簿を私的利用。", a: ["人脈作り", "個人情報保護法違反", "効率化"], c: "個人情報保護法違反", e: "厳格な管理が必要です。" },
+    { q: "会議で意見を否定し続ける。", a: ["議論", "ロジハラ", "向上心"], c: "ロジハラ", e: "心理的安全性を損なう。" },
+    { q: "ネット上の嘘を拡散。", a: ["面白ければOK", "デマ拡散の加害", "表現の自由"], c: "デマ拡散の加害", e: "責任が問われます。" },
+    { q: "許可なく同僚を撮影。", a: ["仲良し", "肖像権侵害", "記録"], c: "肖像権侵害", e: "プライバシー尊重を。" },
+    { q: "終業後の執拗なLINE。", a: ["業務連絡", "パワハラ", "親交"], c: "パワハラ", e: "勤務外の強要はNG。" },
+    { q: "社内情報を家族に話す。", a: ["世間話", "機密保持違反", "信頼"], c: "機密保持違反", e: "家族でも漏洩です。" },
+    { q: "他人のIDでログイン。", a: ["緊急時ならOK", "不正アクセス禁止法", "協力"], c: "不正アクセス禁止法", e: "犯罪行為になり得ます。" },
+    { q: "AIに機密情報を入力。", a: ["時短", "学習による流出リスク", "安全"], c: "学習による流出リスク", e: "外部に漏れる恐れ。" },
+    { q: "名刺をゴミ箱に捨てる。", a: ["不要物", "個人情報廃棄不備", "整理整頓"], c: "個人情報廃棄不備", e: "シュレッダーが必須です。" },
+    { q: "休暇申請を理由なく拒絶。", a: ["会社の権利", "パワハラ・法令違反", "教育"], c: "パワハラ・法令違反", e: "正当な理由なき拒否はNG。" },
+    { q: "ネットの歌詞を全部転載。", a: ["感動を共有", "著作権侵害", "宣伝"], c: "著作権侵害", e: "JASRAC等の許諾が必要です。" },
+    { q: "社内の不満を実名でSNS投稿。", a: ["自由", "信用失墜・機密違反", "告発"], c: "信用失墜・機密違反", e: "就業規則違反の恐れ。" },
+    { q: "宛先間違いで一斉送信。", a: ["ご愛嬌", "情報漏洩", "再送"], c: "情報漏洩", e: "BCCを使いましょう。" },
+    { q: "「若いのに偉い」と連呼。", a: ["褒め言葉", "エイジハラスメント", "励まし"], c: "エイジハラスメント", e: "年齢偏見が含まれます。" },
+    { q: "CDをBGMで社内に流す。", a: ["雰囲気", "著作権侵害", "福利厚生"], c: "著作権侵害", e: "営利環境は許諾が必要。" }
+];
+
+let gameState = "start", charName = "", currentStage = 0, bgm = new Audio(), quizDeck = [];
+function msg(n, b) { document.getElementById("speaker-name").innerText = n; document.getElementById("message-body").innerText = b; }
+
+function initGame() {
+    quizDeck = [...masterQuizes].sort(() => Math.random() - 0.5);
+    document.getElementById("start-overlay").classList.add("hidden");
+    document.getElementById("message-window").classList.remove("hidden");
+    document.getElementById("game-container").style.backgroundImage = "url('道中.jpg')";
+    bgm.src = "導入2.mp3"; bgm.loop = true; bgm.play();
+    gameState = "intro";
+    msg("神父", "試練を開始します。画面をクリックして下さい。");
+}
+
+function handleWindowClick() {
+    if (gameState === "intro") {
+        gameState = "selecting";
+        document.getElementById("char-select-screen").classList.remove("hidden");
+        const opt = document.getElementById("char-options");
+        opt.innerHTML = "";
+        Object.keys(players).forEach(p => {
+            const d = document.createElement("div"); d.className = "char-card";
+            d.innerHTML = `<img src="${players[p].img}" class="char-thumb"><div>${p}</div>`;
+            d.onclick = (e) => { e.stopPropagation(); selectChar(p); };
+            opt.appendChild(d);
+        });
+    }
+}
+
+function selectChar(name) {
+    charName = name;
+    document.getElementById("char-select-screen").classList.add("hidden");
+    document.getElementById("player-img").src = players[name].img;
+    document.getElementById("player-img").classList.remove("hidden");
+    document.getElementById("progress-bar").classList.remove("hidden");
+    msg("神父", `${name}よ、向かいなさい。`);
+    gameState = "battle_wait";
+    setTimeout(startBattle, 2000);
+}
+
+function startBattle() {
+    if (currentStage >= stages.length) return gameClear();
+    bgm.src = "戦闘曲.mp3"; bgm.play();
+    const s = stages[currentStage];
+    document.getElementById("stage-num").innerText = currentStage + 1;
+    document.getElementById("game-container").style.backgroundImage = `url('${s.bg}')`;
+    document.getElementById("enemy-img").src = s.f;
+    msg(s.n, s.msg);
+    const ui = document.getElementById("ui-container");
+    ui.classList.remove("hidden");
+    ui.innerHTML = `<button class="btn" onclick="startQuiz()">解答する</button>`;
+}
+
+function startQuiz() {
+    const ui = document.getElementById("ui-container");
+    const q = quizDeck.pop() || masterQuizes[0];
+    msg("問題", q.q); ui.innerHTML = "";
+    const choices = [...q.a].sort(() => Math.random() - 0.5);
+    choices.forEach((txt) => {
+        const b = document.createElement("button"); b.className = "btn"; b.innerText = txt;
+        b.onclick = () => {
+            if (txt === q.c) {
+                ui.classList.add("hidden");
+                // 最終ステージ（魔王）かどうかの判定
+                if (currentStage === stages.length - 1) {
+                    playLastScene();
+                } else {
+                    currentStage++;
+                    msg("敵", "正解！");
+                    setTimeout(startBattle, 2000);
+                }
+            }
+            else { msg("神父", `解説：${q.e}`); }
+        };
+        ui.appendChild(b);
+    });
+    const sBtn = document.createElement("button"); sBtn.className = "btn"; sBtn.innerText = players[charName].s;
+    sBtn.onclick = () => { msg(charName, "なにも起きない！"); }; ui.appendChild(sBtn);
+}
+
+// --------------------------------------------------
+// 魔王撃破シーン：ここを差し込みました
+// --------------------------------------------------
+function playLastScene() {
+    msg("魔王", "ぐわああぁぁぁぁっ！バ、バカな……！");
+    setTimeout(() => {
+        msg("魔王", "この私が、人間の、しかも人間の知恵に屈するなど……あり得ぬ……！");
+        setTimeout(() => {
+            // フラッシュ演出
+            document.getElementById("game-container").classList.add("flash");
+            msg("魔王", "だが覚えておくがいい……知識の灯が消える時、私は再び……ぐわぁぁぁぁーーっ！！");
+            
+            setTimeout(() => {
+                // グラフィックを消す
+                document.getElementById("game-container").classList.remove("flash");
+                document.getElementById("enemy-img").style.opacity = "0";
+                msg("システム", "【MISSION COMPLETE：魔王討伐完了！】");
+                
+                setTimeout(() => {
+                    currentStage++;
+                    gameClear();
+                }, 3000);
+            }, 3000);
+        }, 3000);
+    }, 3000);
+}
+
+function gameClear() {
+    bgm.src = "ED曲.mp3"; bgm.play();
+    document.getElementById("ui-container").classList.add("hidden");
+    document.getElementById("end-roll-screen").classList.remove("hidden");
+    document.getElementById("credits-container").style.animation = "scroll-up 20s linear forwards";
+}
+</script>
+</body>
+</html>
