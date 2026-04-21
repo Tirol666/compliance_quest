@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neko Relax - 猫の癒しサイト</title>
+    <!-- 
+        GitHub Pagesで動く理由:
+        1. サーバーサイド(PHP/Node.js等)を必要としない純粋な静的ファイルであること
+        2. すべてのリソース(CSS/JS)がこの1ファイルに完結、またはCDN経由で取得されること
+        3. データベースの代わりにブラウザのlocalStorageを使用していること
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kiwi Maru', serif;
+            background-color: #fff9f0;
+            color: #5d4037;
+        }
+        .cat-card:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+        .purr-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .heart-btn.active {
+            color: #e53e3e;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <!-- ヘッダー -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <span>🐾</span> Neko Relax
+            </h1>
+            <nav class="flex gap-4 text-sm md:text-base">
+                <button onclick="showTab('home')" class="hover:text-orange-500 transition">ホーム</button>
+                <button onclick="showTab('gallery')" class="hover:text-orange-500 transition">ギャラリー</button>
+                <button onclick="showTab('healing')" class="hover:text-orange-500 transition">癒しツール</button>
+                <button onclick="showTab('favs')" class="hover:text-orange-500 transition">お気に入り</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-8">
+
+        <!-- ホームタブ -->
+        <section id="home" class="tab-content active space-y-8 animate-fadeIn">
+            <div class="relative rounded-3xl overflow-hidden h-64 md:h-96 shadow-lg">
+                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=1000" alt="Main Cat" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <div class="text-center text-white p-4">
+                        <h2 class="text-3xl md:text-5xl font-bold mb-2">猫と、ひと休み。</h2>
+                        <p class="text-lg">疲れた心に、ふわふわの癒しを届けます。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
+                <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="text-orange-400">✨</span> 今日の一言
+                </h3>
+                <p id="daily-quote" class="text-lg italic">「ごろごろ鳴くのは、幸せの合図だよ。」</p>
+                <button onclick="updateQuote()" class="mt-4 text-sm text-orange-500 hover:underline">別の一言を聞く</button>
+            </div>
+        </section>
+
+        <!-- ギャラリータブ -->
+        <section id="gallery" class="tab-content space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">猫ちゃんギャラリー</h2>
+                <div class="flex gap-2">
+                    <button onclick="filterGallery('all')" class="px-3 py-1 bg-orange-100 rounded-full text-xs hover:bg-orange-200">すべて</button>
+                    <button onclick="filterGallery('calm')" class="px-3 py-1 bg-orange-100 rounded-full text-xs hover:bg-orange-200">お昼寝</button>
+                    <button onclick="filterGallery('active')" class="px-3 py-1 bg-orange-100 rounded-full text-xs hover:bg-orange-200">元気</button>
+                </div>
+            </div>
+
+            <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- JSで挿入 -->
+            </div>
+        </section>
+
+        <!-- 癒しツールタブ -->
+        <section id="healing" class="tab-content space-y-8">
+            <h2 class="text-2xl font-bold text-center">心のセルフケア</h2>
+            
+            <!-- ゴロゴロメーカー -->
+            <div class="bg-orange-50 p-8 rounded-3xl text-center shadow-inner border-2 border-dashed border-orange-200">
+                <div class="mb-4 text-6xl">🐱</div>
+                <h3 class="text-xl font-bold mb-2">ゴロゴロ・ボタン</h3>
+                <p class="text-sm mb-6">ボタンを押すと、猫が喉を鳴らすようなリズムで画面が震えます。</p>
+                <button id="purr-btn" class="bg-orange-400 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:bg-orange-500 transition-transform active:scale-95">
+                    ゴロゴロを聴く(体感)
+                </button>
+                <div id="purr-visual" class="mt-6 h-2 flex justify-center gap-1 opacity-0">
+                    <div class="w-4 h-4 bg-orange-300 rounded-full purr-animation"></div>
+                    <div class="w-4 h-4 bg-orange-300 rounded-full purr-animation" style="animation-delay: 0.3s"></div>
+                    <div class="w-4 h-4 bg-orange-300 rounded-full purr-animation" style="animation-delay: 0.6s"></div>
+                </div>
+            </div>
+
+            <!-- 名前診断 -->
+            <div class="bg-white p-6 rounded-2xl shadow-md">
+                <h3 class="text-xl font-bold mb-4">もしもあなたが猫だったら診断</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="user-name" placeholder="お名前を入力" class="flex-1 border rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-orange-300">
+                    <button onclick="diagnoseCat()" class="bg-orange-400 text-white px-4 py-2 rounded-lg hover:bg-orange-500">占う</button>
+                </div>
+                <div id="diagnosis-result" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                    <!-- 結果表示 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- お気に入りタブ -->
+        <section id="favs" class="tab-content space-y-6">
+            <h2 class="text-2xl font-bold text-center">あなたのお気に入り</h2>
+            <div id="favs-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- ローカルストレージから読み込み -->
+            </div>
+            <div id="no-favs" class="text-center py-20 text-gray-400 hidden">
+                まだお気に入りの猫ちゃんはいません🐾
+            </div>
+        </section>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="fixed bottom-0 w-full bg-white/80 backdrop-blur-md border-t py-2 text-center text-xs text-gray-500">
+        &copy; 2024 Neko Relax - Static Site on GitHub Pages
+    </footer>
+
+    <script>
+        // データ定義
+        const cats = [
+            { id: 1, type: 'calm', url: 'https://images.unsplash.com/photo-1511275539165-cc46b1ee89bf?auto=format&fit=crop&q=80&w=400', name: 'シロ' },
+            { id: 2, type: 'active', url: 'https://images.unsplash.com/photo-1513245538863-17035fb1a01c?auto=format&fit=crop&q=80&w=400', name: 'チャチャ' },
+            { id: 3, type: 'calm', url: 'https://images.unsplash.com/photo-1472491235688-bdc81a63246e?auto=format&fit=crop&q=80&w=400', name: 'クロ' },
+            { id: 4, type: 'active', url: 'https://images.unsplash.com/photo-1517331156700-3c241d2b4d83?auto=format&fit=crop&q=80&w=400', name: 'ミケ' },
+            { id: 5, type: 'calm', url: 'https://images.unsplash.com/photo-1548247416-ec66f4900b2e?auto=format&fit=crop&q=80&w=400', name: 'ルナ' },
+            { id: 6, type: 'active', url: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&q=80&w=400', name: 'レオ' }
+        ];
+
+        const quotes = [
+            "「焦らなくて大丈夫。猫みたいにのんびりいこう。」",
+            "「あなたのペースで、一歩ずつ進めばいいんだよ。」",
+            "「お昼寝は、心を元気にする魔法だよ。」",
+            "「今日もお疲れ様。よく頑張ったね。」",
+            "「たまには丸くなって、自分を甘やかしてあげて。」"
+        ];
+
+        let favorites = JSON.parse(localStorage.getItem('neko_favs')) || [];
+
+        // タブ切り替え
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            window.scrollTo(0, 0);
+            if(tabId === 'favs') renderFavorites();
+        }
+
+        // ギャラリー描画
+        function renderGallery(filter = 'all') {
+            const grid = document.getElementById('gallery-grid');
+            grid.innerHTML = '';
+            
+            const filteredCats = filter === 'all' ? cats : cats.filter(c => c.type === filter);
+            
+            filteredCats.forEach(cat => {
+                const isFav = favorites.includes(cat.id);
+                const card = `
+                    <div class="cat-card bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+                        <img src="${cat.url}" class="w-full h-40 object-cover" alt="${cat.name}">
+                        <div class="p-3 flex justify-between items-center">
+                            <span class="font-bold text-sm">${cat.name}</span>
+                            <button onclick="toggleFav(${cat.id})" class="heart-btn ${isFav ? 'active' : 'text-gray-300'} transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        }
+
+        function filterGallery(type) {
+            renderGallery(type);
+        }
+
+        // お気に入り機能
+        function toggleFav(id) {
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(fid => fid !== id);
+            } else {
+                favorites.push(id);
+            }
+            localStorage.setItem('neko_favs', JSON.stringify(favorites));
+            renderGallery();
+        }
+
+        function renderFavorites() {
+            const grid = document.getElementById('favs-grid');
+            const emptyMsg = document.getElementById('no-favs');
+            grid.innerHTML = '';
+            
+            const favCats = cats.filter(c => favorites.includes(c.id));
+            
+            if (favCats.length === 0) {
+                emptyMsg.classList.remove('hidden');
+            } else {
+                emptyMsg.classList.add('hidden');
+                favCats.forEach(cat => {
+                    const card = `
+                        <div class="bg-white rounded-xl overflow-hidden shadow-sm">
+                            <img src="${cat.url}" class="w-full h-40 object-cover" alt="${cat.name}">
+                            <div class="p-3 flex justify-between items-center">
+                                <span class="font-bold text-sm">${cat.name}</span>
+                                <button onclick="toggleFav(${cat.id}); renderFavorites();" class="text-red-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            }
+        }
+
+        // 一言更新
+        function updateQuote() {
+            const q = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('daily-quote').innerText = q;
+        }
+
+        // ゴロゴロボタン
+        const purrBtn = document.getElementById('purr-btn');
+        const purrVisual = document.getElementById('purr-visual');
+        let isPurring = false;
+
+        purrBtn.addEventListener('click', () => {
+            isPurring = !isPurring;
+            if (isPurring) {
+                purrBtn.innerText = "ストップ";
+                purrBtn.classList.replace('bg-orange-400', 'bg-gray-400');
+                purrVisual.classList.replace('opacity-0', 'opacity-100');
+            } else {
+                purrBtn.innerText = "ゴロゴロを聴く(体感)";
+                purrBtn.classList.replace('bg-gray-400', 'bg-orange-400');
+                purrVisual.classList.replace('opacity-100', 'opacity-0');
+            }
+        });
+
+        // 診断機能
+        function diagnoseCat() {
+            const name = document.getElementById('user-name').value;
+            if (!name) return;
+            
+            const results = [
+                { type: "ロシアンブルー", desc: "クールで賢いあなた。一人の時間も大切にするタイプです。" },
+                { type: "三毛猫", desc: "個性的で魅力たっぷりなあなた。周りを惹きつける力があります。" },
+                { type: "茶トラ", desc: "人懐っこくて明るいあなた。みんなのムードメーカーです。" },
+                { type: "スコティッシュフォールド", desc: "穏やかでマイペースなあなた。癒やし系キャラとして愛されます。" }
+            ];
+            
+            // 名前の長さなどを元に簡易的な乱数シード作成
+            const index = name.length % results.length;
+            const res = results[index];
+            
+            const box = document.getElementById('diagnosis-result');
+            box.innerHTML = `
+                <p class="font-bold text-orange-600">${name}さんは「${res.type}」タイプ！</p>
+                <p class="text-sm text-gray-600 mt-1">${res.desc}</p>
+            `;
+            box.classList.remove('hidden');
+        }
+
+        // 初期化
+        window.onload = () => {
+            renderGallery();
+            updateQuote();
+        };
+    </script>
+</body>
+</html>
